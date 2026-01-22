@@ -4,6 +4,8 @@ Here is the content formatted as a clean, professional `README.md` file.
 
 # Apache Helix a Distributed Systems Powerhouse
 
+![apache helix.png](image/apache%20helix.png)
+
 ## Introduction: The Hidden Complexity of 'Distributed'
 
 Building distributed systems is an exercise in managing immense, often underestimated, complexity. Developers must support common patterns like fault tolerance, load balancing, and scalability, and each new capability can exponentially increase the difficulty of the system's design.
