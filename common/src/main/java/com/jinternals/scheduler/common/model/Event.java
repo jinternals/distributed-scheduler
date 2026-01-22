@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @Data
 @Table(name = "events")
 public class Event {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,8 +18,8 @@ public class Event {
 
     private String payload;
 
-    // This is the key for distribution
     private int partitionId;
 
-    private String status; // PENDING, PROCESSED, FAILED
+    @Enumerated(EnumType.STRING)
+    private EventStatus status; //
 }
