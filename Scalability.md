@@ -9,7 +9,8 @@ The primary mechanism for handling high loads is **Apache Helix Partitioning**.
 *   **Distribution**: Each Worker Node is assigned a subset of these partitions.
 *   **Scaling**: To handle more load, you can simply:
     1.  Add more Worker Nodes. Helix automatically rebalances partitions to the new nodes.
-    2.  Increase the number of Partitions (requires DB migration strategy) to allow for more granular distribution.
+    2.  Increase the number of Partitions (via `scheduler.partitions` property) to allow for more granular distribution.
+
 
 ## 2. Concurrency & Locking (Database Level)
 We use a robust locking strategy to ensure data consistency without performance penalties.
@@ -28,8 +29,10 @@ While the cluster scales well, individual nodes have limitations in the current 
 The `EventProcessor` now uses a **Thread Pool** to process events in parallel:
 *   It fetches 50 events.
 *   It processes them **in parallel** using an `ExecutorService`.
-*   **Impact**: Throughput of a single node is significantly increased. If an event takes 100ms, 50 events can be processed in parallel (limited by pool size), effectively reducing batch processing time.
+*   **Impact**: Throughput of a single node is significantly increased.
+*   **Current State**: The code currently includes a `Thread.sleep(200)` to simulate real-world processing latency (IO/CPU work). The thread pool allows multiple events to wait in parallel, rather than blocking sequentially.
 *   **Implementation**: Uses `CompletableFuture.runAsync()` with a `ThreadPoolTaskExecutor`.
+
 
 ### B. Partition Starvation (Mitigated)
 The polling logic now implements **Round-Robin** across assigned partitions to prevent starvation:
@@ -47,6 +50,8 @@ while (!activePartitions.isEmpty()) {
 *   **High Contention**: Handled by `SKIP LOCKED` and Granular Transactions.
 *   **Latency**: Reduced by parallel processing.
 
-## 5. Recommended Improvements
-1.  **Parallel Processing**: Implemented thread pool for `handleEvent`.
-2.  **Fairness**: `EventProcessor` now uses round-robin to prevent partition starvation (Implemented).
+## 5. Current Configuration Status
+1.  **Dynamic Partitioning**: Configured via `scheduler.partitions`.
+2.  **Latency Simulation**: Hardcoded `Thread.sleep(200)` in `EventProcessor` for testing high-latency scenarios.
+3.  **Audit Timestamps**: `Event` entity tracks `createdAt` and `updatedAt` for performance monitoring.
+

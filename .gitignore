@@ -498,4 +498,5 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 .idea/
+target/
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,java,osx,vs
