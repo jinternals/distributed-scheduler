@@ -1,0 +1,97 @@
+services:
+  zookeeper:
+    image: zookeeper:3.8
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+      ZOO_4LW_COMMANDS_WHITELIST: "*"
+
+  zoonavigator:
+    image: elkozmon/zoonavigator:1.1.2
+    ports:
+      - "9000:9000"
+    environment:
+      HTTP_PORT: 9000
+      AUTO_CONNECT_CONNECTION_STRING: zookeeper:2181
+
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: scheduler_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Initializes the Helix cluster and exits
+  cluster-init:
+    build: 
+        context: .
+        dockerfile: worker-node/Dockerfile
+    command: ["java", "-jar", "app.jar", "--spring.profiles.active=init"]
+    depends_on:
+      - zookeeper
+    environment:
+      spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
+      helix.zookeeper.address: zookeeper:2181
+      helix.cluster.name: scheduler-cluster
+      spring.main.web-application-type: none
+    restart: on-failure
+
+  # Runs the Helix Controller
+  helix-controller:
+    build: 
+        context: .
+        dockerfile: worker-node/Dockerfile
+    command: ["java", "-jar", "app.jar", "--spring.profiles.active=controller"]
+    depends_on:
+      zookeeper:
+        condition: service_started
+      cluster-init:
+        condition: service_completed_successfully
+    environment:
+      spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
+      helix.zookeeper.address: zookeeper:2181
+      helix.cluster.name: scheduler-cluster
+      helix.instance.name: controller-1
+
+  # Runs the Worker Node
+  worker-node:
+    build: 
+        context: .
+        dockerfile: worker-node/Dockerfile
+    command: ["java", "-jar", "app.jar"] # Default profile
+    depends_on:
+      zookeeper:
+        condition: service_started
+      postgres:
+        condition: service_started
+      cluster-init:
+        condition: service_completed_successfully
+    environment:
+      spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
+      helix.zookeeper.address: zookeeper:2181
+      helix.cluster.name: scheduler-cluster
+      # helix.instance.name will be generated dynamically
+    restart: on-failure
+
+  scheduler-api:
+    build: 
+        context: .
+        dockerfile: scheduler-api/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_started
+      cluster-init:
+        condition: service_completed_successfully
+    environment:
+      spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
+
+volumes:
+  postgres_data:
