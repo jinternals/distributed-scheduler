@@ -5,16 +5,16 @@ import com.jinternals.scheduler.common.model.EventRepository;
 import com.jinternals.scheduler.common.model.EventStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Service
+@Profile("!init & !controller")
 public class EventProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(EventProcessor.class);
@@ -38,29 +38,51 @@ public class EventProcessor {
             return;
         }
 
-        partitions.forEach(partition -> {
-            Boolean processed;
-            do {
-                processed = transactionTemplate.execute(status -> {
-                    logger.info("Polling events for partitions: {}", partition);
-                    List<Event> pendingEvents = eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(
-                            partition, EventStatus.PENDING);
+        List<Integer>activePartitions = new LinkedList<>(partitions);
 
-                    if (pendingEvents.isEmpty()) {
-                        return false;
-                    }
+        Collections.shuffle(activePartitions);
 
-                    for (Event event : pendingEvents) {
-                        try {
-                            handleEvent(event);
-                        } catch (Exception e) {
-                            logger.error("Error processing event transaction", e);
-                        }
-                    }
-                    return true;
-                });
-            } while (Boolean.TRUE.equals(processed));
-        });
+        // Round-Robin Loop
+        while (!activePartitions.isEmpty()) {
+
+            Iterator<Integer> iterator = activePartitions.iterator();
+
+            while (iterator.hasNext()) {
+                Integer partition = iterator.next();
+
+                // Process ONE batch.
+                boolean workFound = handlePartitionBatch(partition);
+
+                // Optimization: If a partition is empty, remove it from the list
+                // so we don't query it again during this cycle.
+                if (!workFound) {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    private boolean handlePartitionBatch(Integer partition) {
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            // Log at debug to reduce noise during high throughput
+            logger.info("Polling events for partition: {}", partition);
+
+            List<Event> pendingEvents = eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(
+                    partition, EventStatus.PENDING);
+
+            if (pendingEvents.isEmpty()) {
+                return false; // Signal that this partition is dry
+            }
+
+            for (Event event : pendingEvents) {
+                try {
+                    handleEvent(event);
+                } catch (Exception e) {
+                    logger.error("Error processing event transaction", e);
+                }
+            }
+            return true; // Signal that we did work
+        }));
     }
 
     private void handleEvent(Event event) {
@@ -76,7 +98,7 @@ public class EventProcessor {
         eventRepository.save(event);
     }
 
-    private static void extracted(Event event) throws InterruptedException {
-        Thread.sleep(100);
+    private static void extracted(Event event) {
+        System.out.println("event" + event);
     }
 }
