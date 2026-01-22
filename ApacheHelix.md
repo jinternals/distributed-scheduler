@@ -1,7 +1,3 @@
-Here is the content formatted as a clean, professional `README.md` file.
-
----
-
 # Apache Helix a Distributed Systems Powerhouse
 
 ![apache helix.png](image/apache%20helix.png)
