@@ -39,6 +39,7 @@ services:
       spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
       helix.zookeeper.address: zookeeper:2181
       helix.cluster.name: scheduler-cluster
+      scheduler.partitions: 12
       spring.main.web-application-type: none
     restart: on-failure
 
@@ -76,6 +77,7 @@ services:
       spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
       helix.zookeeper.address: zookeeper:2181
       helix.cluster.name: scheduler-cluster
+      scheduler.partitions: 12
       # helix.instance.name will be generated dynamically
     restart: on-failure
 
@@ -92,6 +94,7 @@ services:
         condition: service_completed_successfully
     environment:
       spring.datasource.url: jdbc:postgresql://postgres:5432/scheduler_db
+      scheduler.partitions: 12
 
 volumes:
   postgres_data:
