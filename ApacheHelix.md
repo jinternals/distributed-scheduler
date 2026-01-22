@@ -98,5 +98,3 @@ Apache Helix simplifies distributed systems by shifting focus from imperative fa
 **A final question for architects:**
 
 > How might a declarative, state-driven approach to cluster management change how you design and operate your own distributed applications?
-
-Would you like me to help you draft a specific configuration file for a Helix "IdealState" to see how this looks in practice?
