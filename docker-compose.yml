@@ -27,7 +27,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Initializes the Helix cluster and exits
   cluster-init:
     build: 
         context: .
@@ -43,7 +42,6 @@ services:
       spring.main.web-application-type: none
     restart: on-failure
 
-  # Runs the Helix Controller
   helix-controller:
     build: 
         context: .
@@ -60,12 +58,11 @@ services:
       helix.cluster.name: scheduler-cluster
       helix.instance.name: controller-1
 
-  # Runs the Worker Node
   worker-node:
     build: 
         context: .
         dockerfile: worker-node/Dockerfile
-    command: ["java", "-jar", "app.jar"] # Default profile
+    command: ["java", "-jar", "app.jar"]
     depends_on:
       zookeeper:
         condition: service_started
@@ -78,7 +75,6 @@ services:
       helix.zookeeper.address: zookeeper:2181
       helix.cluster.name: scheduler-cluster
       scheduler.partitions: 12
-      # helix.instance.name will be generated dynamically
     restart: on-failure
 
   scheduler-api:
