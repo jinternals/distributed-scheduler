@@ -27,7 +27,7 @@ public class ClusterInitializer implements CommandLineRunner {
     @Override
     @SuppressWarnings("deprecation")
     public void run(String... args) throws Exception {
-        log.info("Initializing Helix Cluster: {}" , clusterName);
+        log.info("Initializing Helix Cluster: {}", clusterName);
         ZKHelixAdmin admin = new ZKHelixAdmin(zkAddress);
         try {
             // Create Cluster
@@ -38,6 +38,13 @@ public class ClusterInitializer implements CommandLineRunner {
                 log.info("Cluster already exists.");
             }
 
+            // Ensure MasterSlave state model exists
+            if (!admin.getStateModelDefs(clusterName).contains(BuiltInStateModelDefinitions.MasterSlave.name())) {
+                admin.addStateModelDef(clusterName, BuiltInStateModelDefinitions.MasterSlave.name(),
+                        BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition());
+                log.info("StateModelDefinition MasterSlave added.");
+            }
+
             // Add Resource (e.g. "scheduler-resource") with 6 partitions and MasterSlave
             // model
             String resourceName = "scheduler-resource";
@@ -45,7 +52,7 @@ public class ClusterInitializer implements CommandLineRunner {
                 admin.addResource(clusterName, resourceName, numPartitions,
                         BuiltInStateModelDefinitions.MasterSlave.name(),
                         "AUTO_REBALANCE");
-                log.info("Resource created: {}" , resourceName);
+                log.info("Resource created: {}", resourceName);
 
                 // Rebalance is needed for AUTO rebalance mode so the controller picks it up
                 admin.rebalance(clusterName, resourceName, 2); // 2 replicas
@@ -72,7 +79,7 @@ public class ClusterInitializer implements CommandLineRunner {
 
             // Verify
             ClusterConfig verifyConfig = configAccessor.getClusterConfig(clusterName);
-            log.info("Current Cluster Config: {}" , verifyConfig.getRecord().getSimpleFields());
+            log.info("Current Cluster Config: {}", verifyConfig.getRecord().getSimpleFields());
 
         } catch (Exception e) {
             log.error("Failed to enable auto join", e);

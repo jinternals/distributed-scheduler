@@ -4,22 +4,20 @@ import com.jinternals.scheduler.workernode.helix.SchedulerStateModelFactory;
 import com.jinternals.scheduler.workernode.service.PartitionManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-
 import org.springframework.context.annotation.Profile;
 
 @Configuration
+@Slf4j
 @Profile("!init & !controller")
 public class HelixConfiguration {
 
-    private static final Logger logger = LoggerFactory.getLogger(HelixConfiguration.class);
 
     @Value("${helix.cluster.name}")
     private String clusterName;
@@ -27,7 +25,7 @@ public class HelixConfiguration {
     @Value("${helix.zookeeper.address}")
     private String zkAddress;
 
-    @Value("${helix.instance.name}")
+    @Value("${helix.instance.name:}")
     private String instanceName;
 
     private HelixManager helixManager;
@@ -40,7 +38,11 @@ public class HelixConfiguration {
 
     @PostConstruct
     public void start() {
-        logger.info("Starting Helix Participant: cluster={}, instance={}, zk={}", clusterName, instanceName, zkAddress);
+        if (instanceName == null || instanceName.isEmpty()) {
+            instanceName = "worker-" + java.util.UUID.randomUUID();
+        }
+
+        log.info("Starting Helix Participant: cluster={}, instance={}, zk={}", clusterName, instanceName, zkAddress);
         try {
             helixManager = HelixManagerFactory.getZKHelixManager(
                     clusterName,
@@ -53,9 +55,9 @@ public class HelixConfiguration {
                     new SchedulerStateModelFactory(partitionManager));
 
             helixManager.connect();
-            logger.info("Helix Participant connected successfully.");
+            log.info("Helix Participant connected successfully.");
         } catch (Exception e) {
-            logger.error("Failed to connect Helix Participant", e);
+            log.error("Failed to connect Helix Participant", e);
             throw new RuntimeException(e);
         }
     }
@@ -63,7 +65,7 @@ public class HelixConfiguration {
     @PreDestroy
     public void stop() {
         if (helixManager != null && helixManager.isConnected()) {
-            logger.info("Disconnecting Helix Participant...");
+            log.info("Disconnecting Helix Participant...");
             helixManager.disconnect();
         }
     }
