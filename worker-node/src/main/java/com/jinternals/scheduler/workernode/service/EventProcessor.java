@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -69,24 +70,16 @@ public class EventProcessor {
     }
 
     private boolean handlePartitionBatch(Integer partition) {
-        // Step 1: Fetch Events (Transaction Scope: Short)
-        List<Event> pendingEvents = transactionTemplate.execute(status -> {
-            logger.debug("Polling events for partition: {}", partition);
-            return eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(
-                    partition, EventStatus.PENDING);
-        });
+        List<Event> eventsToProcess = fetchPendingEventsForPartition(partition);
 
-        if (pendingEvents == null || pendingEvents.isEmpty()) {
+        if (eventsToProcess == null || eventsToProcess.isEmpty()) {
             return false; // Signal that this partition is dry
         }
 
-        // Step 2: Process Events (Transaction Scope: None / Per-Event)
         List<CompletableFuture<Event>> futures = new ArrayList<>();
 
-        for (Event event : pendingEvents) {
-            // Submit to thread pool
-            CompletableFuture<Event> future = CompletableFuture.supplyAsync(() -> handleEvent(event),
-                    eventTaskExecutor);
+        for (Event event : eventsToProcess) {
+            CompletableFuture<Event> future = CompletableFuture.supplyAsync(() -> handleEvent(event), eventTaskExecutor);
             futures.add(future);
         }
 
@@ -100,18 +93,35 @@ public class EventProcessor {
             logger.error("Error waiting for batch completion", e);
         }
 
-        // Step 3: Bulk Persist Results (One Transaction)
+        // Step 3: Bulk Persist Final Results (Status -> PROCESSED/FAILED)
         if (!processedEvents.isEmpty()) {
             try {
                 eventRepository.saveAll(processedEvents);
             } catch (Exception e) {
-                logger.error("CRITICAL: Failed to save batch of {} events", processedEvents.size(), e);
-                // Fallback: Try saving individually to salvage partial success?
-                // For now, logging critical error.
+                logger.error("CRITICAL: Failed to save batch of {} processed events", processedEvents.size(), e);
             }
         }
 
         return true; // Signal that we did work
+    }
+
+    private List<Event> fetchPendingEventsForPartition(Integer partition) {
+        List<Event> eventsToProcess = transactionTemplate.execute(status -> {
+            logger.debug("Polling events for partition: {}", partition);
+            List<Event> events = eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(
+                    partition, EventStatus.PENDING);
+
+            if (events.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            events.forEach(event -> {
+                event.setStatus(EventStatus.IN_PROGRESS);
+                event.setLockedAt(LocalDateTime.now());
+            });
+            return eventRepository.saveAll(events);
+        });
+        return eventsToProcess;
     }
 
     private Event handleEvent(Event event) {
