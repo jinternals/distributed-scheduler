@@ -47,6 +47,12 @@ public class SchedulerStateModel extends StateModel {
     @Transition(from = "SLAVE", to = "OFFLINE")
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
         logger.info("Transitioning from SLAVE to OFFLINE for partition: {}", partitionName);
-        partitionManager.removePartition(partitionId); // Ensure cleanup
+        partitionManager.removePartition(partitionId);
+    }
+
+    @Transition(from = "OFFLINE", to = "DROPPED")
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
+        logger.info("Transitioning from OFFLINE to DROPPED for partition: {}", partitionName);
+        partitionManager.removePartition(partitionId);
     }
 }

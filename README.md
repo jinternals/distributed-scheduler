@@ -48,7 +48,7 @@ The system consists of the following components:
 
 ### 1. clone the repository
 ```bash
-git clone https://github.com/yourusername/distributed-scheduler.git
+git clone https://github.com/jinternals/distributed-scheduler.git
 cd distributed-scheduler
 ```
 
