@@ -50,41 +50,47 @@ class EventProcessorTest {
         @Test
         void testExecute_RoundRobinBehavior() {
 
-
                 Set<Integer> activePartitions = new HashSet<>(Arrays.asList(1, 2, 3));
                 when(partitionManager.getActivePartitions()).thenReturn(activePartitions);
                 when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
-
 
                 Event e1 = createEvent(1, 1);
                 Event e2 = createEvent(2, 1);
                 Event e3 = createEvent(2, 2);
 
-                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(1,
-                        EventStatus.PENDING))
+                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(1),
+                                eq(EventStatus.PENDING)))
                                 .thenReturn(Collections.singletonList(e1)) // 1st call
                                 .thenReturn(Collections.emptyList()); // 2nd call
 
-                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(2,
-                        EventStatus.PENDING))
+                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(2),
+                                eq(EventStatus.PENDING)))
                                 .thenReturn(Collections.singletonList(e2)) // 1st call
                                 .thenReturn(Collections.singletonList(e3)) // 2nd call
                                 .thenReturn(Collections.emptyList()); // 3rd call
 
-                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(3,
-                        EventStatus.PENDING))
+                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(3),
+                                eq(EventStatus.PENDING)))
                                 .thenReturn(Collections.emptyList()); // 1st call
+
+                // Mock saveAll to return the list passed to it (fluent-like)
+                when(eventRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
                 eventProcessor.execute();
 
-                verify(eventRepository, times(2)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(1,
-                        EventStatus.PENDING);
-                verify(eventRepository, times(3)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(2,
-                        EventStatus.PENDING);
-                verify(eventRepository, times(1)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(3,
-                        EventStatus.PENDING);
+                verify(eventRepository, times(2)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(1),
+                                eq(EventStatus.PENDING));
+                verify(eventRepository, times(3)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(2),
+                                eq(EventStatus.PENDING));
+                verify(eventRepository, times(1)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(3),
+                                eq(EventStatus.PENDING));
 
-                verify(eventRepository, times(3)).saveAll(anyList());
+                // We expect 3 successful batches:
+                // 1. Partition 1 (1 event) -> Save IN_PROGRESS -> Save PROCESSED
+                // 2. Partition 2 (1 event) -> Save IN_PROGRESS -> Save PROCESSED
+                // 3. Partition 2 (1 event) -> Save IN_PROGRESS -> Save PROCESSED
+                // Total = 6 calls to saveAll
+                verify(eventRepository, times(6)).saveAll(anyList());
                 verify(eventRepository, never()).save(any(Event.class));
 
                 assertEquals(EventStatus.PROCESSED, e1.getStatus());

@@ -18,7 +18,11 @@ public class Event {
 
     private String payload;
 
+    @Column(name = "exception_stack_trace")
     private String exceptionStackTrace;
+
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
 
     private int partitionId;
 
