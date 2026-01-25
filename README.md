@@ -40,7 +40,7 @@ The system consists of the following components:
 
 ## 🛠️ Prerequisites
 
-*   **Java 17+**
+*   **Java 21+**
 *   **Docker** & **Docker Compose**
 *   **Maven** (optional, for local development)
 
