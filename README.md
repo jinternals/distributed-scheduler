@@ -9,7 +9,7 @@ A robust, distributed task scheduler system built with Java, Spring Boot, Apache
 *   **Fault Tolerance**: If a worker node fails, its partitions are reassigned to other available workers.
 *   **Task Partitioning**: Tasks are sharded using consistent hashing to ensure varied distribution and load balancing.
 *   **Active Polling**: Workers actively poll for pending tasks in their assigned partitions.
-*   **Spring Boot**: Built on modern Spring Boot 3 microservices.
+*   **Spring Boot**: Built on modern Spring Boot microservices.
 *   **Dockerized**: Fully containerized setup with Docker Compose for easy deployment.
 
 ## 🏗️ Architecture
