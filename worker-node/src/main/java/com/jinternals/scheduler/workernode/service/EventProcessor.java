@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,6 +18,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static com.jinternals.scheduler.workernode.config.KafkaConfig.SCHEDULER_EVENTS_TOPIC;
+
 @Service
 @Profile("!init & !controller")
 public class EventProcessor {
@@ -26,14 +29,17 @@ public class EventProcessor {
     private final EventRepository eventRepository;
     private final TransactionTemplate transactionTemplate;
     private final Executor eventTaskExecutor;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public EventProcessor(PartitionManager partitionManager, EventRepository eventRepository,
             PlatformTransactionManager transactionManager,
-            @Qualifier("eventTaskExecutor") Executor eventTaskExecutor) {
+            @Qualifier("eventTaskExecutor") Executor eventTaskExecutor,
+            KafkaTemplate<String, Object> kafkaTemplate) {
         this.partitionManager = partitionManager;
         this.eventRepository = eventRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.eventTaskExecutor = eventTaskExecutor;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Scheduled(fixedDelay = 100)
@@ -79,7 +85,8 @@ public class EventProcessor {
         List<CompletableFuture<Event>> futures = new ArrayList<>();
 
         for (Event event : eventsToProcess) {
-            CompletableFuture<Event> future = CompletableFuture.supplyAsync(() -> handleEvent(event), eventTaskExecutor);
+            CompletableFuture<Event> future = CompletableFuture.supplyAsync(() -> handleEvent(event),
+                    eventTaskExecutor);
             futures.add(future);
         }
 
@@ -149,10 +156,11 @@ public class EventProcessor {
         return stackTrace;
     }
 
-    private static void extracted(Event event) {
+    private void extracted(Event event) {
         try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
+            logger.info("Publishing event to Kafka: {}", event.getId());
+            kafkaTemplate.send(SCHEDULER_EVENTS_TOPIC, event.getId(), event);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

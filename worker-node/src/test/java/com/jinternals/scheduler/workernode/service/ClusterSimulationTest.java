@@ -135,6 +135,9 @@ class ClusterSimulationTest {
         executor.setThreadNamePrefix("Node-" + nodeId + "-Worker-");
         executor.initialize();
 
-        return new EventProcessor(partitionManager, eventRepository, txManager, executor);
+        org.springframework.kafka.core.KafkaTemplate kafkaTemplate = mock(
+                org.springframework.kafka.core.KafkaTemplate.class);
+
+        return new EventProcessor(partitionManager, eventRepository, txManager, executor, kafkaTemplate);
     }
 }

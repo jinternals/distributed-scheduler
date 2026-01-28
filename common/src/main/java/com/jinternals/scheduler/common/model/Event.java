@@ -17,7 +17,7 @@ public class Event {
 
     private String payload;
 
-    @Column(name = "exception_stack_trace")
+    @Column(name = "exception_stack_trace", length = 4096)
     private String exceptionStackTrace;
 
     @Column(name = "locked_at")

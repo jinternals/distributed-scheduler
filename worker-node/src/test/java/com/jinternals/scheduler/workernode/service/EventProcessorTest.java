@@ -33,6 +33,9 @@ class EventProcessorTest {
         @Mock
         private Executor eventTaskExecutor;
 
+        @Mock
+        private org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
+
         private EventProcessor eventProcessor;
 
         @BeforeEach
@@ -44,7 +47,7 @@ class EventProcessorTest {
                 }).when(eventTaskExecutor).execute(any(Runnable.class));
 
                 eventProcessor = new EventProcessor(partitionManager, eventRepository, transactionManager,
-                                eventTaskExecutor);
+                                eventTaskExecutor, kafkaTemplate);
         }
 
         @Test
