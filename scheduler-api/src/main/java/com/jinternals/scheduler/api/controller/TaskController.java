@@ -19,7 +19,8 @@ public class TaskController {
 
     @PostMapping
     public Event createTask(@RequestBody CreateTaskRequest request) {
-        return taskService.scheduleTask(UUID.randomUUID().toString(), request.name(), request.scheduledTime(), request.payload());
+        String eventId = request.id() != null ? request.id() : UUID.randomUUID().toString();
+        return taskService.scheduleTask(eventId, request.name(), request.scheduledTime(), request.payload());
     }
 
     @DeleteMapping("/{id}")
@@ -28,4 +29,5 @@ public class TaskController {
     }
 }
 
-record CreateTaskRequest(String name, LocalDateTime scheduledTime, String payload) {}
+record CreateTaskRequest(String id, String name, LocalDateTime scheduledTime, String payload) {
+}

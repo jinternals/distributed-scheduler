@@ -34,7 +34,7 @@ class EventProcessorTest {
         private Executor eventTaskExecutor;
 
         @Mock
-        private org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
+        private com.jinternals.scheduler.common.model.OutboxRepository outboxRepository;
 
         private EventProcessor eventProcessor;
 
@@ -46,8 +46,9 @@ class EventProcessorTest {
                         return null;
                 }).when(eventTaskExecutor).execute(any(Runnable.class));
 
-                eventProcessor = new EventProcessor(partitionManager, eventRepository, transactionManager,
-                                eventTaskExecutor, kafkaTemplate);
+                eventProcessor = new EventProcessor(partitionManager, eventRepository, outboxRepository,
+                                transactionManager,
+                                eventTaskExecutor);
         }
 
         @Test
@@ -55,25 +56,29 @@ class EventProcessorTest {
 
                 Set<Integer> activePartitions = new HashSet<>(Arrays.asList(1, 2, 3));
                 when(partitionManager.getActivePartitions()).thenReturn(activePartitions);
-                when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
+                // Return a NEW Mock TransactionStatus for each call
+                when(transactionManager.getTransaction(any())).thenAnswer(i -> mock(TransactionStatus.class));
 
                 Event e1 = createEvent(1, 1);
                 Event e2 = createEvent(2, 1);
                 Event e3 = createEvent(2, 2);
 
-                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(1),
-                                eq(EventStatus.PENDING)))
+                when(eventRepository.findTop50ByPartitionIdAndStatusAndScheduledTimeLessThanEqualOrderByScheduledTime(
+                                eq(1),
+                                eq(EventStatus.PENDING), any()))
                                 .thenReturn(Collections.singletonList(e1)) // 1st call
                                 .thenReturn(Collections.emptyList()); // 2nd call
 
-                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(2),
-                                eq(EventStatus.PENDING)))
+                when(eventRepository.findTop50ByPartitionIdAndStatusAndScheduledTimeLessThanEqualOrderByScheduledTime(
+                                eq(2),
+                                eq(EventStatus.PENDING), any()))
                                 .thenReturn(Collections.singletonList(e2)) // 1st call
                                 .thenReturn(Collections.singletonList(e3)) // 2nd call
                                 .thenReturn(Collections.emptyList()); // 3rd call
 
-                when(eventRepository.findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(3),
-                                eq(EventStatus.PENDING)))
+                when(eventRepository.findTop50ByPartitionIdAndStatusAndScheduledTimeLessThanEqualOrderByScheduledTime(
+                                eq(3),
+                                eq(EventStatus.PENDING), any()))
                                 .thenReturn(Collections.emptyList()); // 1st call
 
                 // Mock saveAll to return the list passed to it (fluent-like)
@@ -81,12 +86,15 @@ class EventProcessorTest {
 
                 eventProcessor.execute();
 
-                verify(eventRepository, times(2)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(1),
-                                eq(EventStatus.PENDING));
-                verify(eventRepository, times(3)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(2),
-                                eq(EventStatus.PENDING));
-                verify(eventRepository, times(1)).findTop50ByPartitionIdAndStatusOrderByScheduledTime(eq(3),
-                                eq(EventStatus.PENDING));
+                verify(eventRepository, times(2))
+                                .findTop50ByPartitionIdAndStatusAndScheduledTimeLessThanEqualOrderByScheduledTime(eq(1),
+                                                eq(EventStatus.PENDING), any());
+                verify(eventRepository, times(3))
+                                .findTop50ByPartitionIdAndStatusAndScheduledTimeLessThanEqualOrderByScheduledTime(eq(2),
+                                                eq(EventStatus.PENDING), any());
+                verify(eventRepository, times(1))
+                                .findTop50ByPartitionIdAndStatusAndScheduledTimeLessThanEqualOrderByScheduledTime(eq(3),
+                                                eq(EventStatus.PENDING), any());
 
                 // We expect 3 successful batches:
                 // 1. Partition 1 (1 event) -> Save IN_PROGRESS -> Save PROCESSED
