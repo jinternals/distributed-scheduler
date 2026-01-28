@@ -100,7 +100,7 @@ class EventProcessorTest {
 
         private Event createEvent(int partitionId, long idSuffix) {
                 Event event = new Event();
-                event.setId((long) partitionId * 1000 + idSuffix);
+                event.setId(String.valueOf((long) partitionId * 1000 + idSuffix));
                 event.setEventName("TestEvent");
                 event.setPartitionId(partitionId);
                 event.setStatus(EventStatus.PENDING);

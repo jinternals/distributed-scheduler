@@ -49,7 +49,7 @@ public class EventRepositoryTest {
         event1 = eventRepository.save(event1);
         event2 = eventRepository.save(event2);
 
-        Long lockedId = event1.getId();
+        String lockedId = event1.getId();
 
         // Coordination
         CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
@@ -61,7 +61,7 @@ public class EventRepositoryTest {
                 conn.setAutoCommit(false);
                 try (Statement stmt = conn.createStatement()) {
                     System.out.println("Thread 1: Attempting to lock ID " + lockedId);
-                    stmt.execute("SELECT * FROM events WHERE id = " + lockedId + " FOR UPDATE");
+                    stmt.execute("SELECT * FROM events WHERE id = '" + lockedId + "' FOR UPDATE");
                     System.out.println("Thread 1: Locked ID " + lockedId);
 
                     lockAcquiredLatch.countDown();

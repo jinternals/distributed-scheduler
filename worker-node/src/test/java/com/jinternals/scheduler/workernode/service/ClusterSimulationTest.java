@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 class ClusterSimulationTest {
 
     // Shared "Database"
-    private final Map<Long, Event> database = new ConcurrentHashMap<>();
+    private final Map<String, Event> database = new ConcurrentHashMap<>();
 
     @Test
     void simulateClusterProcessing_10k_Events() throws InterruptedException {
@@ -34,11 +34,11 @@ class ClusterSimulationTest {
         System.out.println("Populating database with " + totalEvents + " events...");
         for (long i = 0; i < totalEvents; i++) {
             Event event = new Event();
-            event.setId(i);
+            event.setId(String.valueOf(i));
             event.setEventName("Event-" + i);
             event.setPartitionId((int) (i % partitions));
             event.setStatus(EventStatus.PENDING);
-            database.put(i, event);
+            database.put(String.valueOf(i), event);
         }
 
         List<EventProcessor> processors = new ArrayList<>();
@@ -46,8 +46,6 @@ class ClusterSimulationTest {
 
         PlatformTransactionManager txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
-
-
 
         for (int i = 0; i < nodes; i++) {
             Set<Integer> assignedPartitions = new HashSet<>();

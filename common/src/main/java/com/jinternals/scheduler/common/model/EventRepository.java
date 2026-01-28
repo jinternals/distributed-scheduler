@@ -2,13 +2,12 @@ package com.jinternals.scheduler.common.model;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
-import org.hibernate.LockOptions;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface EventRepository extends JpaRepository<Event, Long> {
+public interface EventRepository extends JpaRepository<Event, String> {
 
     @QueryHints({@QueryHint(name = QueryHintsUtils.TIMEOUT_HINT_NAME, value = QueryHintsUtils.UPGRADE_SKIPLOCKED)})
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -1,5 +1,6 @@
 package com.jinternals.scheduler.api.service;
 
+import com.jinternals.scheduler.api.utils.PartitionUtils;
 import com.jinternals.scheduler.common.model.Event;
 import com.jinternals.scheduler.common.model.EventRepository;
 import com.jinternals.scheduler.common.model.EventStatus;
@@ -7,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import static com.jinternals.scheduler.api.utils.PartitionUtils.partitionId;
 
 @Service
 public class TaskService {
@@ -21,22 +24,19 @@ public class TaskService {
     }
 
     @Transactional
-    public Event scheduleTask(String name, LocalDateTime time, String payload) {
+    public Event scheduleTask(String id, String name, LocalDateTime time, String payload) {
         Event event = new Event();
+        event.setId(id);
         event.setEventName(name);
         event.setScheduledTime(time);
         event.setPayload(payload);
         event.setStatus(EventStatus.PENDING);
-
-        // Assign partition based on hash of name
-        int partitionId = Math.abs(name.hashCode() % numPartitions);
-        event.setPartitionId(partitionId);
-
+        event.setPartitionId(partitionId(id, numPartitions));
         return eventRepository.save(event);
     }
 
     @Transactional
-    public void removeTask(Long id) {
+    public void removeTask(String id) {
         eventRepository.deleteById(id);
     }
 }
