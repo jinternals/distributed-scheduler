@@ -1,6 +1,8 @@
 package com.jinternals.scheduler.workernode.service;
 
 import com.jinternals.scheduler.common.model.*;
+import com.jinternals.scheduler.common.repositories.EventRepository;
+import com.jinternals.scheduler.common.repositories.OutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,8 +16,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Executor;
 
-import static com.jinternals.scheduler.common.model.EventStatus.PENDING;
-import static com.jinternals.scheduler.common.model.EventStatus.PROCESSED;
+import static com.jinternals.scheduler.common.model.EventStatus.*;
 
 @Service
 @Profile("!init & !controller")
@@ -27,18 +28,22 @@ public class EventProcessor {
     private final OutboxRepository outboxRepository;
     private final TransactionTemplate transactionTemplate;
     private final Executor eventTaskExecutor;
+    private final ClockService clockService;
 
     private static final int POLL_INTERVAL_MS = 1000; // Increased poll frequency since we lost wheel precision
 
-    public EventProcessor(PartitionManager partitionManager, EventRepository eventRepository,
+    public EventProcessor(PartitionManager partitionManager,
+                          EventRepository eventRepository,
             OutboxRepository outboxRepository,
             PlatformTransactionManager transactionManager,
+            ClockService clockService,
             @Qualifier("eventTaskExecutor") Executor eventTaskExecutor) {
         this.partitionManager = partitionManager;
         this.eventRepository = eventRepository;
         this.outboxRepository = outboxRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.eventTaskExecutor = eventTaskExecutor;
+        this.clockService = clockService;
     }
 
     @Scheduled(fixedDelay = POLL_INTERVAL_MS)
@@ -53,10 +58,8 @@ public class EventProcessor {
         List<Integer> activePartitions = new LinkedList<>(partitions);
         Collections.shuffle(activePartitions);
 
-        LocalDateTime now = LocalDateTime.now();
-
         for (Integer partition : activePartitions) {
-            handlePartitionBatch(partition, now);
+            handlePartitionBatch(partition, clockService.getCurrentDateTime());
         }
     }
 
@@ -91,8 +94,8 @@ public class EventProcessor {
             }
 
             events.forEach(event -> {
-                event.setStatus(EventStatus.IN_PROGRESS);
-                event.setLockedAt(LocalDateTime.now());
+                event.setStatus(IN_PROGRESS);
+                event.setLockedAt(clockService.getCurrentDateTime());
             });
             return eventRepository.saveAll(events);
         });
@@ -108,13 +111,14 @@ public class EventProcessor {
                                 .aggregateType("EVENT")
                                 .payload(event.getPayload())
                                 .partitionId(event.getPartitionId())
-                                .createdAt(LocalDateTime.now())
+                                .createdAt(clockService.getCurrentDateTime())
                                 .build())
                         .toList();
 
                 outboxRepository.saveAll(outboxEvents);
 
                 events.forEach(event -> event.setStatus(PROCESSED));
+
                 eventRepository.saveAll(events);
 
                 logger.info("Processed batch of {} events for partition {}", events.size(),

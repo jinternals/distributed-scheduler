@@ -1,13 +1,14 @@
 package com.jinternals.scheduler.workernode;
 
 import com.jinternals.scheduler.common.model.Event;
-import com.jinternals.scheduler.common.model.EventRepository;
+import com.jinternals.scheduler.common.repositories.EventRepository;
 import com.jinternals.scheduler.common.model.EventStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -109,6 +111,7 @@ public class EventRepositoryTest {
 
     private Event createEvent(String name, int partition) {
         Event e = new Event();
+        e.setId(UUID.randomUUID().toString());
         e.setEventName(name);
         e.setPartitionId(partition);
         e.setStatus(EventStatus.PENDING);

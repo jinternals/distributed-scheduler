@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EntityScan("com.jinternals.scheduler.common.model")
-@EnableJpaRepositories("com.jinternals.scheduler.common.model")
+@EnableJpaRepositories("com.jinternals.scheduler.common.repositories")
 @EnableScheduling
 public class Application {
 

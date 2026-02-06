@@ -1,6 +1,6 @@
 package com.jinternals.scheduler.workernode.service;
 
-import com.jinternals.scheduler.common.model.EventRepository;
+import com.jinternals.scheduler.common.repositories.EventRepository;
 import com.jinternals.scheduler.common.model.EventStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;

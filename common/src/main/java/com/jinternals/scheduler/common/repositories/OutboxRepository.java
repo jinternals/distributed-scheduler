@@ -1,5 +1,6 @@
-package com.jinternals.scheduler.common.model;
+package com.jinternals.scheduler.common.repositories;
 
+import com.jinternals.scheduler.common.model.OutboxEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

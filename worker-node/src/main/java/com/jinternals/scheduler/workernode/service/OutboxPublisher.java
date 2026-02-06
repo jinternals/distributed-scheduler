@@ -1,7 +1,7 @@
 package com.jinternals.scheduler.workernode.service;
 
 import com.jinternals.scheduler.common.model.OutboxEvent;
-import com.jinternals.scheduler.common.model.OutboxRepository;
+import com.jinternals.scheduler.common.repositories.OutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;

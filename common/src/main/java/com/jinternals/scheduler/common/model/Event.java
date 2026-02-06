@@ -2,6 +2,10 @@ package com.jinternals.scheduler.common.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.ReadOnlyProperty;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,6 +16,8 @@ public class Event {
     private String id;
 
     private String eventName;
+
+    private String namespace;
 
     private LocalDateTime scheduledTime;
 
@@ -28,18 +34,11 @@ public class Event {
     @Enumerated(EnumType.STRING)
     private EventStatus status;
 
+    @CreatedDate
+    @ReadOnlyProperty
     private LocalDateTime createdAt;
 
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

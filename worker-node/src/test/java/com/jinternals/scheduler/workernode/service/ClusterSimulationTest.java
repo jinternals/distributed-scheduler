@@ -1,14 +1,12 @@
 package com.jinternals.scheduler.workernode.service;
 
 import com.jinternals.scheduler.common.model.Event;
-import com.jinternals.scheduler.common.model.EventRepository;
+import com.jinternals.scheduler.common.repositories.EventRepository;
 import com.jinternals.scheduler.common.model.EventStatus;
+import com.jinternals.scheduler.common.repositories.OutboxRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -226,10 +224,10 @@ class ClusterSimulationTest {
         });
 
         // Use Virtual Thread Executor (Same as Config)
-        Executor executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
+        Executor executor = Executors.newVirtualThreadPerTaskExecutor();
 
-        com.jinternals.scheduler.common.model.OutboxRepository outboxRepository = mock(
-                com.jinternals.scheduler.common.model.OutboxRepository.class);
+        OutboxRepository outboxRepository = mock(OutboxRepository.class);
+        ClockService clockService = mock(ClockService.class);
 
         // Mock Outbox Save
         when(outboxRepository.saveAll(anyList())).thenAnswer(invocation -> {
@@ -240,6 +238,6 @@ class ClusterSimulationTest {
             return batch;
         });
 
-        return new EventProcessor(partitionManager, eventRepository, outboxRepository, txManager, executor);
+        return new EventProcessor(partitionManager, eventRepository, outboxRepository, txManager, clockService, executor);
     }
 }

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @EntityScan("com.jinternals.scheduler.common.model")
-@EnableJpaRepositories("com.jinternals.scheduler.common.model")
+@EnableJpaRepositories("com.jinternals.scheduler.common.repositories")
 public class Application {
 
     public static void main(String[] args) {

@@ -1,8 +1,9 @@
 package com.jinternals.scheduler.workernode.service;
 
 import com.jinternals.scheduler.common.model.Event;
-import com.jinternals.scheduler.common.model.EventRepository;
+import com.jinternals.scheduler.common.repositories.EventRepository;
 import com.jinternals.scheduler.common.model.EventStatus;
+import com.jinternals.scheduler.common.repositories.OutboxRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +35,10 @@ class EventProcessorTest {
         private Executor eventTaskExecutor;
 
         @Mock
-        private com.jinternals.scheduler.common.model.OutboxRepository outboxRepository;
+        private ClockService clockService;
+
+        @Mock
+        private OutboxRepository outboxRepository;
 
         private EventProcessor eventProcessor;
 
@@ -47,8 +51,7 @@ class EventProcessorTest {
                 }).when(eventTaskExecutor).execute(any(Runnable.class));
 
                 eventProcessor = new EventProcessor(partitionManager, eventRepository, outboxRepository,
-                                transactionManager,
-                                eventTaskExecutor);
+                                transactionManager, clockService, eventTaskExecutor);
         }
 
         @Test
