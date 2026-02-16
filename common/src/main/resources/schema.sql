@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     locked_at TIMESTAMP,
-    exception_stack_trace TEXT
+    exception_stack_trace TEXT,
+    namespace VARCHAR(255)
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_partition_status_scheduled 

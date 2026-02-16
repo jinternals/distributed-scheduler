@@ -20,7 +20,8 @@ public class EventSchedulerController {
     @PostMapping
     public Event scheduleEvent(@RequestBody CreateTaskRequest request) {
         String eventId = request.id() != null ? request.id() : UUID.randomUUID().toString();
-        return eventSchedulerService.scheduleEvent(eventId, request.name(), request.scheduledTime(), request.payload());
+        return eventSchedulerService.scheduleEvent(eventId, request.name(), request.scheduledTime(), request.payload(),
+                request.namespace());
     }
 
     @GetMapping("/{id}")
@@ -34,5 +35,5 @@ public class EventSchedulerController {
     }
 }
 
-record CreateTaskRequest(String id, String name, LocalDateTime scheduledTime, String payload) {
+record CreateTaskRequest(String id, String name, LocalDateTime scheduledTime, String payload, String namespace) {
 }

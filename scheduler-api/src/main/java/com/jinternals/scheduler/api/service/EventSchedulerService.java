@@ -26,10 +26,11 @@ public class EventSchedulerService {
     }
 
     @Transactional
-    public Event scheduleEvent(String id, String name, LocalDateTime time, String payload) {
+    public Event scheduleEvent(String id, String name, LocalDateTime time, String payload, String namespace) {
         Event event = new Event();
         event.setId(id);
         event.setEventName(name);
+        event.setNamespace(namespace);
         event.setScheduledTime(time);
         event.setPayload(payload);
         event.setStatus(PENDING);
